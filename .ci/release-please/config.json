@@ -4,6 +4,10 @@
     "tools/github": {
       "path": "tools/github",
       "release-type": "python"
+    },
+    "tools/a": {
+      "path": "tools/a",
+      "release-type": "python"
     }
   }
 }
