@@ -8,6 +8,10 @@
     "tools/a": {
       "path": "tools/a",
       "release-type": "python"
+    },
+    "tools/aa": {
+      "path": "tools/aa",
+      "release-type": "python"
     }
   }
 }
