@@ -1,5 +1,5 @@
 {
   "tool-github": "0.0.1",
-  "tools/a": "0.0.1",
-  "tools/aa": "0.0.1"
+  "tools/a": "0.1.0",
+  "tools/aa": "1.0.0"
 }
