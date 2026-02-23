@@ -107,7 +107,7 @@ def update_release_please_config(language: str, path: str):
         json.dump(config, f, indent=2)
 
     manifest[path] = default_version
-    with open("manifest.json", "w") as f:
+    with open(manifest_path, "w") as f:
         json.dump(manifest, f, indent=2)
 
 
