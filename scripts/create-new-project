@@ -1,0 +1,155 @@
+#!/usr/bin/env python3
+from pathlib import Path
+import argparse
+import subprocess
+import json
+import shutil
+
+default_version = "0.0.1"
+default_authors = "Agentic Scrumt Authors"
+default_license = "MIT"
+config_path = ".ci/release-please/config.json"
+manifest_path = ".ci/release-please/manifest.json"
+
+
+def create_project(language: str, path: str, desc: str):
+    if Path(path).exists():
+        raise FileExistsError(f"Project with path {path} already exists")
+    match language:
+        case "python":
+            create_python_project(path, desc)
+        case "node":
+            create_node_project(path, desc)
+        case _:
+            print(f"Unsupported language: {language}")
+            print("Only python and node are supported")
+            exit(1)
+
+
+def create_python_project(path: str, desc: str):
+    subprocess.run(
+        ["uv", "init", "--description", desc, path],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    subprocess.run(
+        ["uv", "version", default_version, "--directory", path],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    with open(f"{path}/pyproject.toml", "a") as f:
+        f.write(f'license = "{default_license}"')
+
+
+def create_node_project(path: str, desc: str):
+    Path(path).mkdir(parents=True)
+    subprocess.run(
+        ["npm", "init", "-y"],
+        cwd=path,
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    subprocess.run(
+        ["npm", "pkg", "set", f"author-name={default_authors}"],
+        cwd=path,
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    subprocess.run(
+        ["npm", "pkg", "set", f"description={desc}"],
+        cwd=path,
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    subprocess.run(
+        ["npm", "pkg", "set", f"license={default_license}"],
+        cwd=path,
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    subprocess.run(
+        ["npm", "pkg", "set", "main=main.ts"],
+        cwd=path,
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    subprocess.run(
+        ["npm", "pkg", "set", "type=module"],
+        cwd=path,
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    subprocess.run(
+        ["npm", "pkg", "set", f"version={default_version}"],
+        cwd=path,
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+
+
+def update_release_please_config(language: str, path: str):
+    config_data = {"path": path, "release-type": language}
+
+    with open(config_path, "r") as f:
+        config = json.load(f)
+    with open(manifest_path, "r") as f:
+        manifest = json.load(f)
+
+    config["packages"][path] = config_data
+    with open(config_path, "w") as f:
+        json.dump(config, f, indent=2)
+
+    manifest[path] = default_version
+    with open("manifest.json", "w") as f:
+        json.dump(manifest, f, indent=2)
+
+
+def die(path: str, message: str, cleanup: bool = False):
+    if cleanup:
+        shutil.rmtree(path)
+    print(message)
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        prog="create-new-project",
+        description="Helper to create a new project",
+        epilog="Bottom Text (comic sans)",
+    )
+    parser.add_argument("-p", "--path", help="path to project", required=True)
+    parser.add_argument(
+        "-l", "--language", help="language to use (python/node)", required=True
+    )
+    parser.add_argument(
+        "-d", "--description", help="description of project", required=True
+    )
+
+    args = parser.parse_args()
+    language = args.language
+    path = args.path
+    desc = args.description
+
+    try:
+        create_project(language, path, desc)
+        update_release_please_config(language, path)
+    except FileExistsError:
+        die(path, f"The project {path} already exists")
+    except subprocess.CalledProcessError:
+        die(path, f"Failed to create {language} project", cleanup=True)
+    except json.decoder.JSONDecodeError:
+        die(
+            path,
+            f"Failed to create {language} project (could not update release please config)",
+            cleanup=True,
+        )
+
+
+if __name__ == "__main__":
+    main()
